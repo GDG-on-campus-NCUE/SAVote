@@ -26,19 +26,19 @@ export class SamlStrategy extends PassportStrategy(Strategy, 'saml') {
     constructor(private configService: ConfigService) {
         const entryPoint = configService.get<string>('SAML_ENTRY_POINT');
         const issuer = configService.get<string>('SAML_ISSUER');
+        const cert = configService.get<string>('SAML_CERT');
 
-        console.log('SamlStrategy: Initializing with config (no signature validation for dev):', {
-            entryPoint,
-            issuer,
-            callbackUrl: configService.get<string>('SAML_CALLBACK_URL'),
-        });
-
-        // Dev-only: disable signature validation entirely to avoid OpenSSL issues.
-        // DO NOT use this configuration in production.
+        const isProduction = configService.get<string>('NODE_ENV') === 'production';
         
-        // Generate a dummy self-signed certificate that won't cause OpenSSL parser errors
-        // This is a valid PEM format but won't be used for actual verification
-        const dummyCert = `-----BEGIN CERTIFICATE-----
+        let certToUse = cert;
+        let wantAssertionsSigned = true;
+        let wantAuthnResponseSigned = true;
+
+        if (!cert || cert === 'dummy') {
+             console.log('SamlStrategy: No valid cert provided, using dummy cert and disabling validation (DEV ONLY)');
+             // Generate a dummy self-signed certificate that won't cause OpenSSL parser errors
+             // This is a valid PEM format but won't be used for actual verification
+             certToUse = `-----BEGIN CERTIFICATE-----
 MIICmzCCAYMCBgGTt9sxKjANBgkqhkiG9w0BAQsFADARMQ8wDQYDVQQDDAZkdW1t
 eTAeFw0yNTEyMDEwMDAwMDBaFw0zNTEyMDEwMDAwMDBaMBExDzANBgNVBAMMBmR1
 bW15MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0p2CpyPuRH4bP0Tc
@@ -50,20 +50,32 @@ V3Q8Z9sA6V5R9L0P8K9Q5V3Q8Z9sA6V5R9L0P8K9Q5V3Q8Z9sA6V5R9L0P8K9Q5V
 MA0GCSqGSIb3DQEBCwUAA4IBAQCp8Z9sA6V5R9L0P8K9Q5V3Q8Z9sA6V5R9L0P8K
 9Q5V3Q8Z9sA6V5R9L0P8K9Q5V3Q8Z9sA6V5R9L0P8K9Q5V3Q8Z9sA6V5R9L0P8K9
 -----END CERTIFICATE-----`;
+            wantAssertionsSigned = false;
+            wantAuthnResponseSigned = false;
+        } else {
+            // Format the provided cert
+            certToUse = SamlStrategy.formatCert(cert);
+        }
+
+        console.log('SamlStrategy: Initializing with config:', {
+            entryPoint,
+            issuer,
+            callbackUrl: configService.get<string>('SAML_CALLBACK_URL'),
+            hasCert: !!cert,
+            wantAssertionsSigned,
+        });
 
         super({
             entryPoint: entryPoint,
             callbackUrl: configService.get<string>('SAML_CALLBACK_URL'),
             issuer: issuer,
-            cert: dummyCert,
+            cert: certToUse,
             acceptedClockSkewMs: 5000,
             disableRequestedAuthnContext: true,
             identifierFormat: null,
-            // Set these to false to skip signature verification (dev only)
-            wantAssertionsSigned: false,
-            wantAuthnResponseSigned: false,
-            validateInResponseTo: false,
-            // Force skip all validation
+            wantAssertionsSigned: wantAssertionsSigned,
+            wantAuthnResponseSigned: wantAuthnResponseSigned,
+            validateInResponseTo: wantAssertionsSigned, // Only validate if we are checking signatures
             skipRequestCompression: true,
         });
     }

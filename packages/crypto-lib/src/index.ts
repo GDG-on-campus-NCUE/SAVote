@@ -1,7 +1,29 @@
 import * as snarkjs from 'snarkjs';
 // @ts-ignore
 import { buildPoseidon } from 'circomlibjs';
-import verificationKey from './verification_key.json';
+import * as fs from 'fs';
+import * as path from 'path';
+
+// Load verification key from build artifacts or expected location
+// In production, this file should be placed in the same directory or a known location
+let verificationKey: any;
+try {
+    // Try to load from local file (if copied during build)
+    const localPath = path.join(__dirname, 'verification_key.json');
+    if (fs.existsSync(localPath)) {
+        verificationKey = JSON.parse(fs.readFileSync(localPath, 'utf-8'));
+    } else {
+        // Try to load from circuits build directory (monorepo dev mode)
+        const buildPath = path.resolve(__dirname, '../../../circuits/build/verification_key.json');
+        if (fs.existsSync(buildPath)) {
+            verificationKey = JSON.parse(fs.readFileSync(buildPath, 'utf-8'));
+        } else {
+            console.warn('Verification key not found. Verification will fail.');
+        }
+    }
+} catch (e) {
+    console.warn('Error loading verification key:', e);
+}
 
 export interface ProofInput {
     root: string;

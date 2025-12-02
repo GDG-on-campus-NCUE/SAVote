@@ -14,7 +14,7 @@
     }
   },
   "scripts": {
-    "build": "npm run build:esm && npm run build:cjs",
+    "build": "pnpm run build:esm && pnpm run build:cjs",
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "dev": "tsc -p tsconfig.cjs.json -w"

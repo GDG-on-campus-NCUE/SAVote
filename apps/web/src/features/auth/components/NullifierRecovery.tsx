@@ -20,14 +20,12 @@ export const NullifierRecovery = ({ onSuccess, subtitle }: NullifierRecoveryProp
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [showPasteHint, setShowPasteHint] = useState(true);
   const [showSecret, setShowSecret] = useState(false);
 
   const handlePaste = async () => {
     try {
       const text = await navigator.clipboard.readText();
       setSecretInput(text.trim());
-      setShowPasteHint(false);
       setError(null);
     } catch (err) {
       console.error('Failed to read clipboard:', err);
@@ -45,7 +43,6 @@ export const NullifierRecovery = ({ onSuccess, subtitle }: NullifierRecoveryProp
         const match = text.match(/金鑰：\s*\n([a-f0-9]+)/);
         if (match && match[1]) {
           setSecretInput(match[1]);
-          setShowPasteHint(false);
           setError(null);
         } else {
           setError('無法從檔案中讀取金鑰，請檢查檔案格式');
@@ -112,7 +109,6 @@ export const NullifierRecovery = ({ onSuccess, subtitle }: NullifierRecoveryProp
               value={secretInput}
               onChange={(event) => {
                 setSecretInput(event.target.value);
-                setShowPasteHint(false);
               }}
               className="w-full px-4 py-3 pr-32 glass-subtle rounded-xl font-mono text-sm text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:glow-blue-border transition-all"
               placeholder="請貼上您的 64 位元十六進位金鑰..."
